@@ -222,7 +222,25 @@ These checks establish version and file presence, not successful plugin
 loading, audio rendering, or GUI operation. Native VST scanning still targets
 Windows DLLs; Linux LMMS plugin discovery does not add native VST support.
 
-### Custom Plugins & VST
+### Opt-in STDIO and audio smoke test
+
+`tests/test_stdio_render.py` launches a separate `python -m lmms_mcp` process
+through the MCP SDK's STDIO client. In a prepared, isolated test environment,
+set `LMMS_TEST_STDIO_RENDER=1` and `LMMS_TEST_EXECUTABLE` to its existing LMMS
+launcher, then run `python -m pytest tests/test_stdio_render.py`. Optionally set
+`LMMS_TEST_EXPECTED_VERSION` and `LMMS_TEST_ARTIFACT_DIR` (a new directory).
+
+The test checks initialization, tool discovery, invalid-argument and application
+errors, composition, save/reload after replacing in-memory state, and real WAV
+rendering. It inspects PCM duration, energy and full-scale samples, preserving
+the typed response transcript, catalog, server stderr, project and audio.
+It makes no model calls, installs/downloads nothing, and never extracts an
+AppImage. The caller must impose isolation and resource limits; this test does
+not create a security boundary. It is skipped unless explicitly enabled.
+Passing does not establish listening quality, GUI control, VST functionality,
+or interoperability with every MCP client/SDK version.
+
+### Custom Plugins & VST tools
 
 | Tool | Description |
 |------|-------------|
