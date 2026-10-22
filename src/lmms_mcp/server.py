@@ -1010,7 +1010,7 @@ def get_lmms_info() -> str:
             "message": "LMMS installation not found. Projects can still "
                        "be created and saved, but plugin availability "
                        "cannot be verified and rendering is disabled. "
-                       "Set LMMS_EXECUTABLE env var to your lmms.exe.",
+                       "Set LMMS_EXECUTABLE env var to your LMMS executable or launcher.",
         })
     try:
         installed = lmms_app.get_installed_plugins()
@@ -1144,7 +1144,7 @@ def list_available_plugins() -> str:
         "built_in_instruments": sorted(known_inst),
         "built_in_effects": sorted(known_eff),
         "custom_plugins_unknown_type": classified["unknown"],
-        "note": "Custom plugins can be used by their DLL name in "
+        "note": "Custom LMMS plugins can be used by their normalized library name in "
                 "add_instrument_track or add_effect. For VST .dll files "
                 "on disk use add_vst_track instead.",
     }, indent=2)

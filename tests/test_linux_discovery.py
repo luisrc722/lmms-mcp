@@ -49,7 +49,10 @@ class LinuxDiscoveryTests(unittest.TestCase):
 
     def test_lmms_on_path_is_discovered(self):
         executable = self.executable("bin/lmms")
-        with patch("shutil.which", return_value=str(executable)):
+        with (
+            patch("shutil.which", return_value=str(executable)),
+            patch.object(lmms_app, "_is_executable", return_value=False),
+        ):
             self.assertEqual(lmms_app.find_lmms_exe(), executable)
 
     def test_explicit_plugin_directory_works_without_an_executable(self):
