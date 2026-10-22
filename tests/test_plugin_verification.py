@@ -56,6 +56,52 @@ class PluginVerificationTests(unittest.TestCase):
         self.assertNotIn("error", result)
         self.assertEqual(len(server.get_project().get_info().tracks), 1)
 
+    def test_offline_composition_reports_unknown_availability(self):
+        with patch.object(lmms_app, "get_installed_plugins", return_value=set()):
+            result = json.loads(server.add_instrument_track("Offline lead"))
+        self.assertIn("cannot verify", result["warning"])
+
+    def test_offline_effects_remain_allowed_with_a_warning(self):
+        with patch.object(lmms_app, "get_installed_plugins", return_value=set()):
+            server.add_instrument_track("Offline lead")
+            result = json.loads(server.add_effect("track", 0, "delay"))
+        self.assertNotIn("error", result)
+        self.assertIn("cannot verify", result["warning"])
+
+    def test_unknown_status_is_distinct_from_missing(self):
+        unknown, _ = lmms_app.get_plugin_availability("slicert", installed_plugins=set())
+        missing, _ = lmms_app.get_plugin_availability("slicert", installed_plugins={"delay"})
+        self.assertIsNone(unknown)
+        self.assertIs(missing, False)
+
+    def test_legacy_boolean_remains_permissive_for_offline_callers(self):
+        with patch.object(lmms_app, "get_installed_plugins", return_value=set()):
+            allowed, reason = lmms_app.check_plugin_available("tripleoscillator")
+        self.assertIs(allowed, True)
+        self.assertIn("cannot verify", reason)
+
+    def test_unreadable_inventory_is_unknown_instead_of_verified(self):
+        with patch.object(lmms_app, "get_installed_plugins", side_effect=PermissionError):
+            status, reason = lmms_app.get_plugin_availability("tripleoscillator")
+            info = json.loads(server.get_lmms_info())
+        self.assertIsNone(status)
+        self.assertIn("cannot verify", reason)
+        self.assertEqual(info["plugin_inventory_status"], "unknown")
+        self.assertEqual(info["instruments_verified_available"], [])
+        self.assertTrue(info["plugin_inventory_warning"])
+
+    def test_info_uses_one_consistent_inventory_snapshot(self):
+        with patch.object(lmms_app, "get_installed_plugins", return_value={"delay"}) as query:
+            info = json.loads(server.get_lmms_info())
+        query.assert_called_once_with()
+        self.assertEqual(info["plugin_inventory_status"], "available")
+        self.assertIn("freeboy", info["instruments_unverified"])
+        self.assertNotIn("slicert", info["instruments_verified_available"])
+
+    def test_static_candidate_is_detected_if_its_file_is_present(self):
+        status, _ = lmms_app.get_plugin_availability("freeboy", installed_plugins={"freeboy"})
+        self.assertIs(status, True)
+
 
 if __name__ == "__main__":
     unittest.main()
