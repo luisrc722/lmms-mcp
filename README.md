@@ -200,7 +200,11 @@ another one. Without it, the server checks standard Windows locations and
 `lmms` on `PATH`.
 
 Plugin discovery accepts LMMS's own `LMMS_PLUGIN_DIR` override, portable
-`plugins/`, and Unix-prefix `lib/lmms` or `lib64/lmms` layouts. Linux
+`plugins/`, Unix-prefix `lib/lmms` or `lib64/lmms`, and the host ABI's
+`lib/<MULTIARCH>/lmms` layout (for example Debian's `lib/x86_64-linux-gnu/lmms`).
+The multiarch suffix comes from Python's `sysconfig`; discovery does not scan
+other ABIs or prefixes. Cross-architecture installations need an explicit
+`LMMS_PLUGIN_DIR`. Linux
 `libNAME.so` and Windows `NAME.dll` filenames map to the XML name `NAME`;
 discovery does not load native code. An invalid explicit plugin directory
 does not fall back to another inventory.

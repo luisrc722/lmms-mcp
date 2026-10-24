@@ -1,10 +1,10 @@
 """Portable discovery tests: inspect files without loading native plugins."""
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from lmms_mcp import lmms_app
@@ -82,9 +82,52 @@ class LinuxDiscoveryTests(unittest.TestCase):
         with patch.object(lmms_app, "find_lmms_exe", return_value=executable):
             self.assertEqual(lmms_app.get_plugins_dir(), plugins)
 
+    def test_multiarch_inventory_uses_selected_prefix(self):
+        executable = self.executable("prefix/bin/lmms")
+        for multiarch in ("x86_64-linux-gnu", "aarch64-linux-gnu"):
+            with self.subTest(multiarch=multiarch):
+                plugins = self.root / "prefix/lib" / multiarch / "lmms"
+                plugins.mkdir(parents=True)
+                (plugins / "libtripleoscillator.so").touch()
+                with (
+                    patch.object(lmms_app, "find_lmms_exe", return_value=executable),
+                    patch("sysconfig.get_config_var", return_value=multiarch),
+                ):
+                    self.assertEqual(lmms_app.get_plugins_dir(), plugins)
+                    self.assertEqual(lmms_app.get_installed_plugins(), {"tripleoscillator"})
+
+    def test_multiarch_does_not_select_another_abi(self):
+        executable = self.executable("prefix/bin/lmms")
+        (self.root / "prefix/lib/aarch64-linux-gnu/lmms").mkdir(parents=True)
+        with (
+            patch.object(lmms_app, "find_lmms_exe", return_value=executable),
+            patch("sysconfig.get_config_var", return_value="x86_64-linux-gnu"),
+        ):
+            self.assertIsNone(lmms_app.get_plugins_dir())
+
+    def test_missing_multiarch_value_does_not_scan_other_directories(self):
+        executable = self.executable("prefix/bin/lmms")
+        (self.root / "prefix/lib/x86_64-linux-gnu/lmms").mkdir(parents=True)
+        with (
+            patch.object(lmms_app, "find_lmms_exe", return_value=executable),
+            patch("sysconfig.get_config_var", return_value=None),
+        ):
+            self.assertIsNone(lmms_app.get_plugins_dir())
+
+    def test_plain_layout_keeps_priority_over_multiarch(self):
+        executable = self.executable("prefix/bin/lmms")
+        plugins = self.root / "prefix/lib/lmms"
+        plugins.mkdir(parents=True)
+        (self.root / "prefix/lib/x86_64-linux-gnu/lmms").mkdir(parents=True)
+        with (
+            patch.object(lmms_app, "find_lmms_exe", return_value=executable),
+            patch("sysconfig.get_config_var", return_value="x86_64-linux-gnu"),
+        ):
+            self.assertEqual(lmms_app.get_plugins_dir(), plugins)
+
     @unittest.skipIf(os.name == "nt", "POSIX AppDir symlink layout")
     def test_extracted_appdir_resolves_apprun_for_plugin_paths(self):
-        executable = self.executable("app/usr/bin/lmms")
+        self.executable("app/usr/bin/lmms")
         plugins = self.root / "app/usr/lib/lmms"
         plugins.mkdir(parents=True)
         apprun = self.root / "app/AppRun"

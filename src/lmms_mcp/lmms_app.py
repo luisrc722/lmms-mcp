@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import sysconfig
 from pathlib import Path
 
 
@@ -68,6 +69,11 @@ def get_plugins_dir() -> Path | None:
         prefix / "lib/lmms",  # Unix prefix and extracted AppDir
         prefix / "lib64/lmms",
     ]
+    # Debian-style packages use the host ABI's multiarch directory. Stay
+    # within the selected prefix rather than borrowing another installation.
+    multiarch = sysconfig.get_config_var("MULTIARCH")
+    if multiarch:
+        candidates.append(prefix / "lib" / multiarch / "lmms")
     return next((path for path in candidates if path.is_dir()), None)
 
 
