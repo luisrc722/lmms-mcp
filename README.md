@@ -232,7 +232,12 @@ launcher, then run `python -m pytest tests/test_stdio_render.py`. Optionally set
 
 The test checks initialization, tool discovery, invalid-argument and application
 errors, composition, save/reload after replacing in-memory state, and real WAV
-rendering. It inspects PCM duration, energy and full-scale samples, preserving
+rendering. Reload checks compare every note's key, position, length, volume and
+panning against the input score through both the API and an independent XML
+reader, together with tempo and track settings. An application error is detected
+under either the inherited JSON envelope or `isError=true`; this smoke test does
+not require the inherited protocol behavior to remain unchanged.
+It inspects PCM duration, energy and full-scale samples, preserving
 the typed response transcript, catalog, server stderr, project and audio.
 It makes no model calls, installs/downloads nothing, and never extracts an
 AppImage. The caller must impose isolation and resource limits; this test does
